@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
-import { UserAgent, Inviter, SessionState } from 'sip.js';
-// import ringbacktone from './assets/ringbacktone.mp3';
+import { UserAgent, Inviter, SessionState, Session } from 'sip.js';
 
 function App() {
   const [wsServer, setWsServer] = useState('');
@@ -11,7 +10,10 @@ function App() {
   const [displayName, setDisplayName] = useState('');
   const [callNumber, setCallNumber] = useState('');
   const [userAgent, setUserAgent] = useState<UserAgent | null>(null);
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const ringbackAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [callState, setCallState] = useState<string>('');
 
   useEffect(() => {
     // Cleanup on component unmount
@@ -22,13 +24,26 @@ function App() {
     };
   }, [userAgent]);
 
-  const handleSubmit = async (event: { preventDefault: () => void; }) => {
+  const handleCall = async (event: { preventDefault: () => void; }) => {
     event.preventDefault();
+
+    if (currentSession) {
+      // 如果有當前的通話，則根據狀態掛斷或取消
+      if (currentSession.state === SessionState.Establishing) {
+        currentSession.cancel();
+        setCallState("呼叫已取消");
+      } else {
+        currentSession.bye();
+        setCallState("通話已掛斷");
+      }
+      setCurrentSession(null);
+      return;
+    }
 
     const domainList = domains.split(',');
     const uri = UserAgent.makeURI(`sip:${username}@${domainList[0]}`);
     if (!uri) {
-      alert("無法創建URI");
+      setCallState("無法創建URI");
       return;
     }
 
@@ -48,13 +63,18 @@ function App() {
       await ua.start();
       const targetURI = UserAgent.makeURI(`sip:${callNumber}@${domainList[0]}`);
       if (!targetURI) {
-        alert("無法創建目標URI");
+        setCallState("無法創建目標URI");
         return;
       }
 
       const inviter = new Inviter(ua, targetURI);
+      setCurrentSession(inviter);
+
       inviter.stateChange.addListener((state) => {
-        if (state === SessionState.Established) {
+        if (state === SessionState.Establishing) {
+          setCallState("正在建立連接...");
+        } else if (state === SessionState.Established) {
+          setCallState("通話已建立");
           // 停止播放音檔
           if (ringbackAudioRef.current) {
             ringbackAudioRef.current.pause();
@@ -75,11 +95,13 @@ function App() {
             audioElement.play();
           }
         } else if (state === SessionState.Terminated) {
+          setCallState("通話已終止");
           // 停止播放音檔
           if (ringbackAudioRef.current) {
             ringbackAudioRef.current.pause();
             ringbackAudioRef.current.currentTime = 0;
           }
+          setCurrentSession(null);
         }
       });
 
@@ -89,17 +111,17 @@ function App() {
       }
 
       await inviter.invite();
-      alert("呼叫已發起");
+      setCallState("呼叫已發起");
     } catch (error) {
       console.error("呼叫失敗", error);
-      alert("呼叫失敗");
+      setCallState("呼叫失敗");
     }
   };
 
   return (
     <>
-      <h1>撥打電話</h1>
-      <form id="callForm" onSubmit={handleSubmit}>
+      <h1>撥打電話 <span>{callState}</span></h1>
+      <form id="callForm" onSubmit={handleCall}>
         <label htmlFor="wsServer">WebSocket Server:</label>
         <input type="text" id="wsServer" name="wsServer" value={wsServer} onChange={(e) => setWsServer(e.target.value)} required />
         <br />
@@ -119,7 +141,9 @@ function App() {
         <label htmlFor="callNumber">Call Number:</label>
         <input type="text" id="callNumber" name="callNumber" value={callNumber} onChange={(e) => setCallNumber(e.target.value)} required /><br />
 
-        <button type="submit">撥打</button>
+        <button type="submit" style={{ backgroundColor: currentSession ? '#ef4444' : '#0ea5e9' }}>
+          {currentSession ? '掛斷' : '撥打'}
+        </button>
       </form>
 
       <audio id="remoteAudio" autoPlay></audio>
