@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { UserAgent, Inviter, SessionState } from 'sip.js';
+// import ringbacktone from './assets/ringbacktone.mp3';
 
 function App() {
   const [wsServer, setWsServer] = useState('');
@@ -10,6 +11,7 @@ function App() {
   const [displayName, setDisplayName] = useState('');
   const [callNumber, setCallNumber] = useState('');
   const [userAgent, setUserAgent] = useState<UserAgent | null>(null);
+  const ringbackAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Cleanup on component unmount
@@ -53,6 +55,12 @@ function App() {
       const inviter = new Inviter(ua, targetURI);
       inviter.stateChange.addListener((state) => {
         if (state === SessionState.Established) {
+          // 停止播放音檔
+          if (ringbackAudioRef.current) {
+            ringbackAudioRef.current.pause();
+            ringbackAudioRef.current.currentTime = 0;
+          }
+
           const audioElement = document.getElementById('remoteAudio') as HTMLAudioElement;
           if (audioElement) {
             const remoteStream = new MediaStream();
@@ -66,8 +74,19 @@ function App() {
             audioElement.srcObject = remoteStream;
             audioElement.play();
           }
+        } else if (state === SessionState.Terminated) {
+          // 停止播放音檔
+          if (ringbackAudioRef.current) {
+            ringbackAudioRef.current.pause();
+            ringbackAudioRef.current.currentTime = 0;
+          }
         }
       });
+
+      // 撥打電話時播放音檔
+      if (ringbackAudioRef.current) {
+        ringbackAudioRef.current.play();
+      }
 
       await inviter.invite();
       alert("呼叫已發起");
@@ -104,6 +123,7 @@ function App() {
       </form>
 
       <audio id="remoteAudio" autoPlay></audio>
+      <audio ref={ringbackAudioRef} src="/src/assets/ringbacktone.mp3" loop></audio>
     </>
   );
 }
