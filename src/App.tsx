@@ -4,11 +4,11 @@ import { UserAgent, Inviter, SessionState, Session } from 'sip.js';
 
 function App() {
   // 定義狀態變數
-  const [wsServer, setWsServer] = useState(''); // WebSocket 伺服器地址
-  const [domains, setDomains] = useState(''); // SIP 域名
-  const [username, setUsername] = useState(''); // 使用者名稱
-  const [password, setPassword] = useState(''); // 密碼
-  const [displayName, setDisplayName] = useState(''); // 顯示名稱
+  const [wsServer, setWsServer] = useState('wss://bonuc.sbc.telesale.org:7443/ws'); // WebSocket 伺服器地址
+  const [domains, setDomains] = useState('bonuc.sbc.telesale.org'); // SIP 域名
+  const [username, setUsername] = useState('3005'); // 使用者名稱
+  const [password, setPassword] = useState('1234'); // 密碼
+  const [displayName, setDisplayName] = useState('Leo'); // 顯示名稱
   const [callNumber, setCallNumber] = useState(''); // 要撥打的號碼
   const [userAgent, setUserAgent] = useState<UserAgent | null>(null); // SIP.js 的 UserAgent
   const [currentSession, setCurrentSession] = useState<Session | null>(null); // 當前的通話會話
@@ -25,7 +25,7 @@ function App() {
     };
   }, [userAgent]);
 
-  const handleCall = async (event: { preventDefault: () => void; }) => {
+  const handleCall = async (event: { preventDefault: () => void }, callToNumber: string | null = null) => {
     event.preventDefault(); // 阻止表單提交的默認行為
 
     if (currentSession) {
@@ -63,7 +63,7 @@ function App() {
 
     try {
       await ua.start(); // 啟動 UserAgent
-      const targetURI = UserAgent.makeURI(`sip:${callNumber}@${domainList[0]}`); // 創建目標 URI
+      const targetURI = UserAgent.makeURI(`sip:${callToNumber ? callToNumber : callNumber}@${domainList[0]}`); // 創建目標 URI
       if (!targetURI) {
         setCallState("無法創建目標URI");
         return;
@@ -147,6 +147,8 @@ function App() {
         <button type="submit" style={{ backgroundColor: currentSession ? '#ef4444' : '#0ea5e9' }}>
           {currentSession ? '掛斷' : '撥打'}
         </button>
+
+        <button style={{ marginTop: '6px' }} type="button" onClick={(e)=>handleCall(e, '0915970815')}>撥打到 Leo</button>
       </form>
 
       <audio id="remoteAudio" autoPlay></audio>
