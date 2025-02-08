@@ -142,7 +142,7 @@ function App() {
         <input type="text" id="displayName" name="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required /><br />
 
         <label htmlFor="callNumber">Call Number:</label>
-        <input type="text" id="callNumber" name="callNumber" value={callNumber} onChange={(e) => setCallNumber(e.target.value)} required /><br />
+        <input type="text" id="callNumber" name="callNumber" value={callNumber} onChange={(e) => setCallNumber(e.target.value)} /><br />
 
         <button type="submit" style={{ backgroundColor: currentSession ? '#ef4444' : '#0ea5e9' }}>
           {currentSession ? '掛斷' : '撥打'}
