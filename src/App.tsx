@@ -3,50 +3,52 @@ import './App.css';
 import { UserAgent, Inviter, SessionState, Session } from 'sip.js';
 
 function App() {
-  const [wsServer, setWsServer] = useState('');
-  const [domains, setDomains] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [callNumber, setCallNumber] = useState('');
-  const [userAgent, setUserAgent] = useState<UserAgent | null>(null);
-  const [currentSession, setCurrentSession] = useState<Session | null>(null);
-  const ringbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  // 定義狀態變數
+  const [wsServer, setWsServer] = useState(''); // WebSocket 伺服器地址
+  const [domains, setDomains] = useState(''); // SIP 域名
+  const [username, setUsername] = useState(''); // 使用者名稱
+  const [password, setPassword] = useState(''); // 密碼
+  const [displayName, setDisplayName] = useState(''); // 顯示名稱
+  const [callNumber, setCallNumber] = useState(''); // 要撥打的號碼
+  const [userAgent, setUserAgent] = useState<UserAgent | null>(null); // SIP.js 的 UserAgent
+  const [currentSession, setCurrentSession] = useState<Session | null>(null); // 當前的通話會話
+  const ringbackAudioRef = useRef<HTMLAudioElement | null>(null); // 音檔的引用
 
-  const [callState, setCallState] = useState<string>('');
+  const [callState, setCallState] = useState<string>(''); // 通話狀態
 
   useEffect(() => {
-    // Cleanup on component unmount
+    // 組件卸載時清理
     return () => {
       if (userAgent) {
-        userAgent.stop();
+        userAgent.stop(); // 停止 UserAgent
       }
     };
   }, [userAgent]);
 
   const handleCall = async (event: { preventDefault: () => void; }) => {
-    event.preventDefault();
+    event.preventDefault(); // 阻止表單提交的默認行為
 
     if (currentSession) {
       // 如果有當前的通話，則根據狀態掛斷或取消
       if (currentSession.state === SessionState.Establishing) {
-        currentSession.cancel();
+        currentSession.cancel(); // 取消正在建立的呼叫
         setCallState("呼叫已取消");
       } else {
-        currentSession.bye();
+        currentSession.bye(); // 掛斷已建立的通話
         setCallState("通話已掛斷");
       }
-      setCurrentSession(null);
+      setCurrentSession(null); // 清除當前會話
       return;
     }
 
-    const domainList = domains.split(',');
-    const uri = UserAgent.makeURI(`sip:${username}@${domainList[0]}`);
+    const domainList = domains.split(','); // 分割域名
+    const uri = UserAgent.makeURI(`sip:${username}@${domainList[0]}`); // 創建 SIP URI
     if (!uri) {
       setCallState("無法創建URI");
       return;
     }
 
+    // 創建 UserAgent
     const ua = new UserAgent({
       uri,
       displayName,
@@ -60,16 +62,17 @@ function App() {
     setUserAgent(ua);
 
     try {
-      await ua.start();
-      const targetURI = UserAgent.makeURI(`sip:${callNumber}@${domainList[0]}`);
+      await ua.start(); // 啟動 UserAgent
+      const targetURI = UserAgent.makeURI(`sip:${callNumber}@${domainList[0]}`); // 創建目標 URI
       if (!targetURI) {
         setCallState("無法創建目標URI");
         return;
       }
 
-      const inviter = new Inviter(ua, targetURI);
+      const inviter = new Inviter(ua, targetURI); // 創建 Inviter
       setCurrentSession(inviter);
 
+      // 監聽狀態改變
       inviter.stateChange.addListener((state) => {
         if (state === SessionState.Establishing) {
           setCallState("正在建立連接...");
@@ -110,7 +113,7 @@ function App() {
         ringbackAudioRef.current.play();
       }
 
-      await inviter.invite();
+      await inviter.invite(); // 發起呼叫
       setCallState("呼叫已發起");
     } catch (error) {
       console.error("呼叫失敗", error);
