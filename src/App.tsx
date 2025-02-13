@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { UserAgent, Inviter, SessionState, Session } from 'sip.js';
+import ringbacktone from './assets/ringbacktone.mp3';
 
 function App() {
   // 定義狀態變數
@@ -152,7 +153,7 @@ function App() {
       </form>
 
       <audio id="remoteAudio" autoPlay></audio>
-      <audio ref={ringbackAudioRef} src="/src/assets/ringbacktone.mp3" loop></audio>
+      <audio ref={ringbackAudioRef} src={ringbacktone} loop></audio>
     </>
   );
 }
