@@ -85,8 +85,7 @@ function App() {
             ringbackAudioRef.current.currentTime = 0;
           }
 
-          const audioElement = document.getElementById('remoteAudio') as HTMLAudioElement;
-          if (audioElement) {
+          if (ringbackAudioRef.current) {
             const remoteStream = new MediaStream();
             if (inviter.sessionDescriptionHandler) {
               (inviter.sessionDescriptionHandler as unknown as { peerConnection: RTCPeerConnection }).peerConnection.getReceivers().forEach((receiver: { track: MediaStreamTrack; }) => {
@@ -95,8 +94,8 @@ function App() {
                 }
               });
             }
-            audioElement.srcObject = remoteStream;
-            audioElement.play();
+            ringbackAudioRef.current.srcObject = remoteStream;
+            ringbackAudioRef.current.play();
           }
         } else if (state === SessionState.Terminated) {
           setCallState("通話已終止");
@@ -152,7 +151,6 @@ function App() {
         <button style={{ marginTop: '6px' }} type="button" onClick={(e)=>handleCall(e, '0915970815')}>撥打到 Leo</button>
       </form>
 
-      <audio id="remoteAudio" autoPlay></audio>
       <audio ref={ringbackAudioRef} src={ringbacktone} loop></audio>
     </>
   );
